@@ -1,8 +1,7 @@
 /*
-	heap
-	This question requires you to implement a binary heap function
+    heap
+    This question requires you to implement a binary heap function
 */
-// I AM NOT DONE
 
 use std::cmp::Ord;
 use std::default::Default;
@@ -18,7 +17,7 @@ where
 
 impl<T> Heap<T>
 where
-    T: Default,
+    T: Default + std::fmt::Debug,
 {
     pub fn new(comparator: fn(&T, &T) -> bool) -> Self {
         Self {
@@ -26,6 +25,10 @@ where
             items: vec![T::default()],
             comparator,
         }
+    }
+
+    pub fn print(&self, prefix: &str) {
+        println!("{prefix} {{ Size: {}, Val: {:?}}}", self.count, self.items);
     }
 
     pub fn len(&self) -> usize {
@@ -37,15 +40,56 @@ where
     }
 
     pub fn add(&mut self, value: T) {
-        //TODO
+        self.count += 1;
+        self.items.insert(self.count, value);
+
+        let mut curr_idx = self.count;
+        loop {
+            let parent_idx = self.parent_idx(curr_idx);
+            if parent_idx == 0 {
+                break;
+            }
+            if (self.comparator)(&self.items[parent_idx], &self.items[curr_idx]) {
+                break;
+            }
+            self.items.swap(parent_idx, curr_idx);
+            curr_idx = parent_idx;
+        }
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        match self.count {
+            0 => None,
+            _ => {
+                self.items.swap(0, 1);
+                self.items.swap(1, self.count);
+                self.count -= 1;
+                // heapify
+                let mut idx = 1;
+                loop {
+                    let child_idx = self.smallest_child_idx(idx);
+                    if child_idx == idx {
+                        break;
+                    }
+                    if !(self.comparator)(&self.items[idx], &self.items[child_idx]) {
+                        self.items.swap(idx, child_idx);
+                        idx = child_idx;
+                    }
+                    println!("curr: {}, child: {}", idx, child_idx);
+                    break;
+                }
+                // ret val
+                Some(std::mem::take(&mut self.items[0]))
+            }
+        }
     }
 
     fn parent_idx(&self, idx: usize) -> usize {
         idx / 2
     }
 
-    fn children_present(&self, idx: usize) -> bool {
-        self.left_child_idx(idx) <= self.count
+    fn node_present(&self, idx: usize) -> bool {
+        idx <= self.count
     }
 
     fn left_child_idx(&self, idx: usize) -> usize {
@@ -57,14 +101,26 @@ where
     }
 
     fn smallest_child_idx(&self, idx: usize) -> usize {
-        //TODO
-		0
+        // if not exist return idx
+        let mut ret = idx;
+        let left_idx = self.left_child_idx(idx);
+        let right_idx = self.right_child_idx(idx);
+
+        if self.node_present(left_idx) {
+            ret = left_idx
+        }
+        if self.node_present(right_idx)
+            && !(self.comparator)(&self.items[left_idx], &self.items[right_idx])
+        {
+            ret = right_idx;
+        }
+        ret
     }
 }
 
 impl<T> Heap<T>
 where
-    T: Default + Ord,
+    T: Default + Ord + std::fmt::Debug,
 {
     /// Create a new MinHeap
     pub fn new_min() -> Self {
@@ -79,13 +135,12 @@ where
 
 impl<T> Iterator for Heap<T>
 where
-    T: Default,
+    T: Default + std::fmt::Debug,
 {
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
-        //TODO
-		None
+        self.pop()
     }
 }
 
@@ -95,7 +150,7 @@ impl MinHeap {
     #[allow(clippy::new_ret_no_self)]
     pub fn new<T>() -> Heap<T>
     where
-        T: Default + Ord,
+        T: Default + Ord + std::fmt::Debug,
     {
         Heap::new(|a, b| a < b)
     }
@@ -107,7 +162,7 @@ impl MaxHeap {
     #[allow(clippy::new_ret_no_self)]
     pub fn new<T>() -> Heap<T>
     where
-        T: Default + Ord,
+        T: Default + Ord + std::fmt::Debug,
     {
         Heap::new(|a, b| a > b)
     }
